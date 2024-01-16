@@ -11,70 +11,69 @@ gcc ejercicio2.c -o ejercicio2
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
 
-#define READ 0
-#define WRITE 1
-#define NTOTALES 20
-int main(int argc, char *argv[]) {
-    int numerosAleatorios;
-    int pipePares[2], pipeImpares[2];
+static int llamado = 0;
 
-    if (pipe(pipePares) == -1) {
-        perror("No se ha creado el pipe o tubería");
-        return 1;
-    }
-
-    if (pipe(pipeImpares) == -1) {
-        perror("No se ha creado el pipe o tubería");
-        return 1;
-    }
-
-    pid_t hijo1 = fork();
-
-    if (hijo1 == -1) {
-        perror("Error al crear el proceso hijo");
-        exit(EXIT_FAILURE);
-    }
-
-    if (hijo1 == 0){ // Código del proceso hijo1
-        close(pipePares[WRITE]); // El padre no leerá del pipe, así que cerramos el descriptor de lectura
-        
-        while (read(pipePares[READ], &numerosAleatorios, sizeof(numerosAleatorios)) > 0) {
-            printf("Soy el hijo 1 he recibido el numero: %d\n", numerosAleatorios);
-        }
-    }
-
-    pid_t hijo2 = fork();
-
-    if (hijo2 == -1) {
-        perror("Error al crear el proceso hijo");
-        exit(EXIT_FAILURE);
-    }
-
-    if (hijo2 == 0){ // Código del proceso hijo2
-        close(pipeImpares[WRITE]); // El padre no leerá del pipe, así que cerramos el descriptor de lectura
-
-        while (read(pipeImpares[READ], &numerosAleatorios, sizeof(numerosAleatorios)) > 0) {
-            printf("Soy el hijo 2 he recibido el numero: %d\n", numerosAleatorios);
-        }
-        
+void manejadorDeSenalesUSR1(int signal) {
+    llamado++;
+    if (llamado == 1) {
+        printf("Hola soy el hijo con el pid %d, me han matado\n", getpid());
     } else {
-        // Semilla para la generación de números aleatorios
-        srand(time(NULL));
-        for (int i = 0; i <= NTOTALES; i++) {
-            numerosAleatorios = rand() % 101;
-            if ((numerosAleatorios % 2) == 0) {
-                close(pipePares[READ]); // El padre no leerá del pipe, así que cerramos el descriptor de lectura
-                write(pipePares[WRITE], &numerosAleatorios, sizeof(numerosAleatorios)); // Escribimos los números en el pipe
-            } else {
-                close(pipeImpares[READ]); // El padre no leerá del pipe, así que cerramos el descriptor de lectura
-                write(pipeImpares[WRITE], &numerosAleatorios, sizeof(numerosAleatorios)); // Escribimos los números en el pipe
+        printf("Hola soy el hijo con el pid %d, me han rematado\n", getpid());
+    }
+}
+
+void manejadorDeSenalesINT(int signal) {
+    if (llamado == 0) {
+        printf("soy el hijo %d y no estoy muerto\n", getpid());
+    } else {
+        printf("soy el hijo %d y estoy muerto\n", getpid());
+    }
+    exit(0);
+}
+
+int main(int argc, char const *argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Uso: %s <numeroHijos> <numSeñales>\n", argv[0]);
+        return 1;
+    }
+
+    int numeroHijos = atoi(argv[1]);
+    int numSeñales = atoi(argv[2]);
+    pid_t arrayHijos[numeroHijos];
+
+    // Creación de procesos hijos.
+    for (int i = 0; i < numeroHijos; i++) {
+        arrayHijos[i] = fork();
+        if (arrayHijos[i] == 0) {
+            signal(SIGUSR1, manejadorDeSenalesUSR1);
+            signal(SIGINT, manejadorDeSenalesINT);
+            while (1) {
+                sleep(1); // Espera por la señal.
             }
-            
         }
+    }
+    srand(time(NULL));
+    for (int i = 0; i < numSeñales; i++) {
+        int numeroRandomHijo = rand() % numeroHijos;
+        kill(arrayHijos[numeroRandomHijo], SIGUSR1);
+        sleep(1);
+    }
+
+    sleep(1);//Espero a todas las salidas de SIGUSR1 para que no se sobrepongan
+
+    for (int i = 0; i < numeroHijos; i++) {
+        kill(arrayHijos[i], SIGINT);
+        sleep(1);
+    }
+
+    // Esperar a que todos los hijos terminen.
+    for (int i = 0; i < numeroHijos; i++) {
+        waitpid(arrayHijos[i], NULL, 0);
     }
 
     return 0;
