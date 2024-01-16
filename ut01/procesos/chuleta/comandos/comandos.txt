@@ -1,0 +1,30 @@
+Comandos procesos
+ps: Muestra información sobre los procesos en ejecución, incluyendo su identificador (PID), estado y recursos utilizados.
+
+top: Proporciona una visión en tiempo real de los procesos que consumen más recursos en el sistema.
+
+htop: Ofrece una versión mejorada de "top" con una interfaz más amigable y opciones de personalización.
+
+kill: Permite enviar señales a los procesos para detenerlos o controlar su comportamiento. El uso común es kill -9 PID para terminar un proceso de manera forzada.
+
+pgrep: Encuentra procesos basados en sus nombres o criterios y muestra sus PID.
+
+pkill: Envía señales a procesos basados en sus nombres o criterios de búsqueda.
+
+killall: Detiene procesos según su nombre, lo que puede ser útil para detener aplicaciones específicas.
+
+ps aux: Muestra una lista completa de todos los procesos en ejecución con detalles extensos.
+
+nice y renice: Permiten ajustar la prioridad de ejecución de un proceso para controlar su asignación de recursos.
+
+jobs: Muestra los trabajos en segundo plano en el shell actual.
+
+bg y fg: Controlan procesos en segundo plano y en primer plano en el shell.
+
+nohup: Ejecuta un comando de forma que continúe ejecutándose incluso después de cerrar la sesión o terminal.
+
+at: Programa la ejecución de comandos en un momento específico en el futuro.
+
+cron: Programador de tareas que permite ejecutar comandos de forma automática en momentos predefinidos.
+
+systemctl: Controla servicios y unidades del sistema en sistemas basados en systemd, que es común en muchas distribuciones modernas de Linux.
